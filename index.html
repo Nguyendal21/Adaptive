@@ -3,48 +3,95 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Điều Khiển Thích Nghi Cánh Tay Robot</title>
+    <meta name="description" content="Mô phỏng Điều khiển Thích nghi (Adaptive Control) cho cánh tay Robot công nghiệp.">
+    <meta name="author" content="Kỹ sư Tự động hóa">
+    <title>Hệ Thống Điều Khiển Thích Nghi Robot</title>
+    
+    <!-- Tích hợp Tailwind CSS qua CDN (Phù hợp cho Netlify Static Deploy) -->
     <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tùy chỉnh CSS nội bộ -->
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #0f172a; color: #f8fafc; overflow: hidden; }
-        .glass-panel { background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 8px; }
-        canvas { display: block; width: 100%; height: 100%; }
-        input[type=range] { width: 100%; accent-color: #3b82f6; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            background-color: #0f172a; 
+            color: #f8fafc; 
+            overflow: hidden; 
+        }
+        .glass-panel { 
+            background: rgba(30, 41, 59, 0.85); 
+            border: 1px solid rgba(255, 255, 255, 0.1); 
+            border-radius: 8px; 
+        }
+        canvas { 
+            display: block; 
+            width: 100%; 
+            height: 100%; 
+        }
+        input[type=range] { 
+            width: 100%; 
+            accent-color: #3b82f6; 
+        }
         
-        /* Custom Toggle Switch */
-        .toggle-checkbox:checked { right: 0; border-color: #3b82f6; }
-        .toggle-checkbox:checked + .toggle-label { background-color: #3b82f6; }
+        /* Tùy chỉnh nút Toggle Switch */
+        .toggle-checkbox:checked { 
+            right: 0; 
+            border-color: #3b82f6; 
+        }
+        .toggle-checkbox:checked + .toggle-label { 
+            background-color: #3b82f6; 
+        }
         
-        .math-text { font-family: 'Courier New', Courier, monospace; color: #fbbf24; }
+        /* Font chữ hiển thị công thức toán học */
+        .math-text { 
+            font-family: 'Courier New', Courier, monospace; 
+            color: #fbbf24; 
+        }
+
+        /* Thanh cuộn tùy chỉnh cho sidebar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; 
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
     </style>
 </head>
 <body class="h-screen w-screen flex flex-col md:flex-row">
 
     <!-- BẢNG ĐIỀU KHIỂN (SIDEBAR) -->
-    <div class="w-full md:w-80 h-full p-4 flex flex-col gap-4 z-10 glass-panel shadow-2xl relative border-r border-slate-700">
-        <h1 class="text-xl font-bold text-blue-400 border-b border-slate-700 pb-2">
-            Mô Phỏng Thích Nghi Khớp Robot
-        </h1>
-        
-        <p class="text-xs text-slate-400">Quan sát quá trình ước lượng khối lượng tải trọng của khớp chịu lực chính (Shoulder/Elbow) trên cánh tay máy.</p>
+    <aside class="w-full md:w-80 h-full p-4 flex flex-col gap-4 z-10 glass-panel shadow-2xl relative border-r border-slate-700">
+        <header class="border-b border-slate-700 pb-2">
+            <h1 class="text-xl font-bold text-blue-400">
+                Mô Phỏng Thích Nghi Khớp Robot
+            </h1>
+            <p class="text-xs text-slate-400 mt-1">Quan sát quá trình ước lượng khối lượng tải trọng của khớp chịu lực chính trên cánh tay máy.</p>
+        </header>
 
-        <!-- Nút Tương Tác Vật Lý -->
-        <div class="flex flex-col gap-2 mt-2">
-            <button id="btnDropBox" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded shadow-[0_0_10px_rgba(37,99,235,0.4)] transition">
+        <!-- Cụm Nút Tương Tác Vật Lý -->
+        <section class="flex flex-col gap-2 mt-2">
+            <button id="btnDropBox" class="bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded shadow-[0_0_10px_rgba(37,99,235,0.4)] transition duration-200">
                 Gắp Tải Trọng Đột Ngột (+2kg)
             </button>
-            <button id="btnRemoveBox" class="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded transition hidden">
+            <button id="btnRemoveBox" class="bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 px-4 rounded transition duration-200 hidden">
                 Nhả Tải Trọng
             </button>
-            <button id="btnDisturbance" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded transition">
+            <button id="btnDisturbance" class="bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 px-4 rounded transition duration-200">
                 Tạo Lực Tác Động (Nhiễu)
             </button>
-        </div>
+        </section>
 
         <div class="h-px w-full bg-slate-700 my-1"></div>
 
-        <!-- Công tắc bật tắt Thích nghi -->
-        <div class="flex items-center justify-between bg-slate-800 p-3 rounded border border-slate-600">
+        <!-- Công tắc chế độ Thích nghi -->
+        <section class="flex items-center justify-between bg-slate-800 p-3 rounded border border-slate-600">
             <div>
                 <span class="text-sm font-bold text-white">Chế độ Thích Nghi</span>
                 <p class="text-[10px] text-slate-400 mt-1">Bật để bộ điều khiển tự học khối lượng.</p>
@@ -53,10 +100,10 @@
                 <input type="checkbox" name="toggle" id="toggleAdaptive" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 bottom-0 m-auto transition-all duration-300 left-0 checked:left-6 border-slate-400 checked:border-blue-400"/>
                 <label for="toggleAdaptive" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-500 cursor-pointer"></label>
             </div>
-        </div>
+        </section>
 
-        <!-- Thanh Trượt Thông Số -->
-        <div class="flex flex-col gap-4 mt-2 overflow-y-auto pr-2 pb-10">
+        <!-- Vùng Thanh Trượt Cấu Hình Thông Số -->
+        <section class="flex flex-col gap-5 mt-2 overflow-y-auto pr-2 pb-10">
             <div id="learningRateContainer" class="bg-blue-900/20 p-3 rounded border border-blue-800/50">
                 <div class="flex justify-between text-sm mb-1">
                     <span class="text-blue-300 font-semibold">Tốc độ học (Gamma)</span>
@@ -67,32 +114,35 @@
 
             <div>
                 <div class="flex justify-between text-sm mb-1 text-slate-300">
-                    <span>Hệ số trượt (Lambda)</span> <span id="val_lambda">5.0</span>
+                    <span>Hệ số trượt (Lambda)</span> 
+                    <span id="val_lambda">5.0</span>
                 </div>
                 <input type="range" id="lambda" min="1" max="15" step="0.5" value="5.0">
             </div>
 
             <div>
                 <div class="flex justify-between text-sm mb-1 text-slate-300">
-                    <span>Hệ số giảm chấn (Kd)</span> <span id="val_kd">20.0</span>
+                    <span>Hệ số giảm chấn (Kd)</span> 
+                    <span id="val_kd">20.0</span>
                 </div>
                 <input type="range" id="kd" min="5" max="50" step="1" value="20.0">
             </div>
             
             <div>
                 <div class="flex justify-between text-sm mb-1 text-slate-300">
-                    <span>Rò rỉ (Sigma)</span> <span id="val_sigma">0.05</span>
+                    <span>Rò rỉ (Sigma)</span> 
+                    <span id="val_sigma">0.05</span>
                 </div>
                 <input type="range" id="sigma" min="0" max="0.2" step="0.01" value="0.05">
             </div>
-        </div>
-    </div>
+        </section>
+    </aside>
 
-    <!-- KHU VỰC TRỰC QUAN HÓA (CANVAS) -->
-    <div class="flex-1 flex flex-col relative bg-slate-900">
+    <!-- KHU VỰC TRỰC QUAN HÓA (MAIN WORKSPACE) -->
+    <main class="flex-1 flex flex-col relative bg-slate-900">
         
-        <!-- Màn hình Động lực học (Animation Cánh tay) -->
-        <div class="h-3/5 relative border-b border-slate-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
+        <!-- Màn hình Animation Cánh tay Robot -->
+        <section class="h-3/5 relative border-b border-slate-700 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black">
             <canvas id="canvasSim"></canvas>
             
             <div class="absolute top-4 left-4 glass-panel p-3 pointer-events-none">
@@ -109,10 +159,10 @@
                 <p>Mô hình: τ = M(q)q̈ + C(q,q̇)q̇ + G(q)</p>
                 <p>Luật cập nhật: m̂̇ = Γ·Y·s - σ·m̂</p>
             </div>
-        </div>
+        </section>
 
-        <!-- Màn hình Đồ thị (Graphs) -->
-        <div class="h-2/5 flex">
+        <!-- Màn hình Đồ thị Giám sát -->
+        <section class="h-2/5 flex">
             <!-- Đồ thị Vị trí khớp -->
             <div class="w-1/2 h-full p-2 border-r border-slate-700 relative bg-slate-950">
                 <div class="absolute top-3 left-4 text-xs font-semibold z-10">
@@ -121,7 +171,8 @@
                 </div>
                 <canvas id="canvasChartAngle"></canvas>
             </div>
-            <!-- Đồ thị Khối lượng học được -->
+            
+            <!-- Đồ thị Tiến trình Thích nghi -->
             <div class="w-1/2 h-full p-2 relative bg-slate-950">
                 <div class="absolute top-3 left-4 text-xs font-semibold z-10">
                     <span class="text-slate-300">Tiến Trình Thích Nghi Tải Trọng</span><br>
@@ -130,13 +181,14 @@
                 </div>
                 <canvas id="canvasChartMass"></canvas>
             </div>
-        </div>
-    </div>
+        </section>
+    </main>
 
+    <!-- MÃ NGUỒN LOGIC VÀ TOÁN HỌC -->
     <script>
         // --- 1. THÔNG SỐ VẬT LÝ HỆ ROBOT 1-DOF ---
         const physics = {
-            g: 9.81,            // Gia tốc trọng trường
+            g: 9.81,            // Gia tốc trọng trường (m/s^2)
             L: 1.0,             // Chiều dài khâu (m)
             m_arm: 2.0,         // Khối lượng khâu robot (kg)
             m_payload: 0.0,     // Khối lượng vật gắp (kg)
@@ -148,17 +200,18 @@
             time: 0.0
         };
 
+        // --- 2. THÔNG SỐ BỘ ĐIỀU KHIỂN SLOTINE-LI ---
         const control = {
             isAdaptive: true,
-            lambda: 5.0,        // Độ dốc mặt trượt
+            lambda: 5.0,        // Băng thông mặt trượt
             kd: 20.0,           // Hệ số cản mặt trượt
             gamma: 15.0,        // Tốc độ học (Learning rate)
-            sigma: 0.05,        // Rò rỉ chống trôi
+            sigma: 0.05,        // Rò rỉ chống trôi thông số (Sigma-modification)
             m_hat_payload: 0.0, // Khối lượng TẢI TRỌNG mà hệ thống đoán được
             max_tau: 200.0      // Giới hạn mô-men xoắn của động cơ khớp (Nm)
         };
 
-        // --- 2. QUẢN LÝ DỮ LIỆU ĐỒ THỊ ---
+        // --- 3. QUẢN LÝ DỮ LIỆU ĐỒ THỊ ---
         const HISTORY_LEN = 300;
         const data = {
             angle_target: Array(HISTORY_LEN).fill(0),
@@ -167,102 +220,99 @@
             m_hat: Array(HISTORY_LEN).fill(0)
         };
 
-        let disturbanceTorque = 0; // Lực nhiễu từ bên ngoài
+        let disturbanceTorque = 0; // Lực nhiễu từ môi trường
 
-        // --- 3. LÕI TOÁN HỌC (Động lực học & Điều khiển Slotine-Li) ---
+        // --- 4. ENGINE VẬT LÝ & THUẬT TOÁN ĐIỀU KHIỂN ---
         function updatePhysics(dt) {
             physics.time += dt;
 
-            // Tạo quỹ đạo tham chiếu (Di chuyển lên xuống nhịp nhàng để kích thích hệ thống)
+            // Bộ tạo quỹ đạo tham chiếu (Trajectory Generator)
             let theta_d = 0.4 * Math.sin(0.5 * physics.time);
             let dtheta_d = 0.4 * 0.5 * Math.cos(0.5 * physics.time);
             let ddtheta_d = -0.4 * 0.25 * Math.sin(0.5 * physics.time);
 
             physics.target_theta = theta_d;
 
-            // 1. Tính toán sai số
+            // Tính toán sai số bám sát
             let e = theta_d - physics.theta;
             let de = dtheta_d - physics.dtheta;
 
-            // 2. Mặt trượt (Sliding Surface) và Vận tốc tham chiếu ảo
+            // Định nghĩa Mặt trượt (Sliding Surface) và Vận tốc tham chiếu ảo
             let s = de + control.lambda * e;
             let dqr = dtheta_d + control.lambda * e;
             let ddqr = ddtheta_d + control.lambda * de;
 
-            // 3. Ma trận hồi quy Y (Chỉ dành cho phần khối lượng TẢI TRỌNG ở đầu cuối cánh tay)
-            // Phương trình momen do tải: tau_payload = m_p * L^2 * ddtheta + m_p * g * L * cos(theta)
+            // Ma trận hồi quy Y (Tách riêng cho phần khối lượng TẢI TRỌNG)
             let Y = (physics.L * physics.L) * ddqr + (physics.g * physics.L) * Math.cos(physics.theta);
 
-            // 4. LUẬT CẬP NHẬT THÍCH NGHI (Tự động học tham số)
+            // Cập nhật luật thích nghi (Quá trình học)
             if (control.isAdaptive) {
                 let dm_hat = control.gamma * Y * s - control.sigma * control.m_hat_payload;
                 control.m_hat_payload += dm_hat * dt;
                 
-                // Giới hạn ước lượng để tránh số âm hoặc quá lớn
+                // Giới hạn vùng giá trị hợp lý của ước lượng
                 control.m_hat_payload = Math.max(-0.5, Math.min(control.m_hat_payload, 5.0));
             }
 
-            // 5. TÍNH TOÁN LỰC ĐIỀU KHIỂN
-            // Phần danh nghĩa (Thân cánh tay mặc định đã biết trước thông số)
-            let M_nom = physics.m_arm * (physics.L / 2) * (physics.L / 2); // Giả sử tâm khối lượng ở giữa
+            // Tính toán Lực điều khiển (Lệnh Mô-men)
+            // Thành phần động lực học của bản thân cánh tay (Đã biết trước)
+            let M_nom = physics.m_arm * (physics.L / 2) * (physics.L / 2); 
             let G_nom = physics.m_arm * physics.g * (physics.L / 2) * Math.cos(physics.theta);
             
-            // Lực tổng hợp: Danh nghĩa + Bù tải trọng (ước lượng) + Lực bám mặt trượt
+            // Lực tổng hợp: Danh nghĩa + Bù tải trọng (ước lượng) + Lực phản hồi PD trên mặt trượt
             let tau = M_nom * ddqr + G_nom + (control.m_hat_payload * Y) + control.kd * s;
-            tau = Math.max(-control.max_tau, Math.min(tau, control.max_tau)); // Cắt biên
+            tau = Math.max(-control.max_tau, Math.min(tau, control.max_tau)); // Giới hạn công suất động cơ
 
-            // 6. MÔ PHỎNG ĐỘNG LỰC HỌC THỰC TẾ CỦA ROBOT (Plant)
-            // Tính toán khối lượng/quán tính thực
+            // Mô phỏng phản ứng thực tế của Robot (Plant)
             let M_true = physics.m_arm * (physics.L / 2) * (physics.L / 2) + physics.m_payload * (physics.L * physics.L);
             let G_true = physics.m_arm * physics.g * (physics.L / 2) * Math.cos(physics.theta) + physics.m_payload * physics.g * physics.L * Math.cos(physics.theta);
 
-            // Giảm dần nhiễu
+            // Suy giảm nhiễu theo thời gian
             disturbanceTorque *= 0.95;
 
-            // Phương trình chuyển động: M * ddtheta + G = tau + nhiễu
+            // Phương trình chuyển động thực: M * ddtheta + G = tau + nhiễu
             let ddtheta_actual = (tau - G_true + disturbanceTorque) / M_true;
 
-            // Tích phân Euler
+            // Tích phân Euler cập nhật trạng thái
             physics.dtheta += ddtheta_actual * dt;
             physics.theta += physics.dtheta * dt;
 
-            // Lưu dữ liệu vẽ biểu đồ
+            // Cập nhật bộ đệm lịch sử vẽ đồ thị
             data.angle_target.shift(); data.angle_target.push(theta_d);
             data.angle_actual.shift(); data.angle_actual.push(physics.theta);
             data.m_true.shift(); data.m_true.push(physics.m_payload);
             data.m_hat.shift(); data.m_hat.push(control.m_hat_payload);
         }
 
-        // --- 4. HỆ THỐNG ĐỒ HỌA (Render Canvas) ---
+        // --- 5. ENGINE ĐỒ HỌA (CANVAS RENDERER) ---
         const cSim = document.getElementById('canvasSim'); const ctxSim = cSim.getContext('2d');
         const cAngle = document.getElementById('canvasChartAngle'); const ctxAngle = cAngle.getContext('2d');
         const cMass = document.getElementById('canvasChartMass'); const ctxMass = cMass.getContext('2d');
 
-        function resize() {
+        function resizeCanvases() {
             cSim.width = cSim.parentElement.clientWidth; cSim.height = cSim.parentElement.clientHeight;
             cAngle.width = cAngle.parentElement.clientWidth; cAngle.height = cAngle.parentElement.clientHeight;
             cMass.width = cMass.parentElement.clientWidth; cMass.height = cMass.parentElement.clientHeight;
         }
-        window.addEventListener('resize', resize); resize();
+        window.addEventListener('resize', resizeCanvases); resizeCanvases();
 
-        // Hàm vẽ cánh tay robot
         function drawArm() {
             ctxSim.clearRect(0, 0, cSim.width, cSim.height);
             
-            const originX = cSim.width * 0.3; // Gốc tọa độ cánh tay
+            const originX = cSim.width * 0.3; // Tọa độ khớp vai
             const originY = cSim.height * 0.6;
-            const pxPerMeter = cSim.height * 0.35; // Tỷ lệ quy đổi
+            const pxPerMeter = cSim.height * 0.35; 
 
-            // Vẽ đế robot (Base)
+            // Vẽ chân đế robot (Base)
             ctxSim.fillStyle = '#334155';
             ctxSim.fillRect(originX - 30, originY, 60, cSim.height - originY);
             ctxSim.fillStyle = '#475569';
             ctxSim.beginPath(); ctxSim.arc(originX, originY, 25, 0, Math.PI*2); ctxSim.fill();
 
-            // Hàm phụ trợ vẽ khâu (link)
+            // Hàm vẽ khâu robot (Link)
             const drawLink = (angle, color, isGhost = false, drawPayload = false) => {
                 const endX = originX + Math.cos(angle) * physics.L * pxPerMeter;
-                const endY = originY - Math.sin(angle) * physics.L * pxPerMeter; // Trục Y hướng lên
+                const endY = originY - Math.sin(angle) * physics.L * pxPerMeter; // Trục Y hiển thị ngược
 
                 ctxSim.save();
                 ctxSim.beginPath();
@@ -279,19 +329,19 @@
                 
                 ctxSim.stroke();
 
-                // Vẽ Khớp/Gripper
+                // Vẽ Khớp/Kẹp đầu cuối
                 ctxSim.beginPath();
                 ctxSim.arc(endX, endY, 10, 0, Math.PI*2);
                 ctxSim.fillStyle = isGhost ? color : '#cbd5e1';
                 ctxSim.fill();
 
-                // Vẽ vật thể nếu có
+                // Vẽ khối lượng tải trọng
                 if (drawPayload && physics.m_payload > 0 && !isGhost) {
                     ctxSim.translate(endX, endY);
-                    ctxSim.rotate(-angle); // Giữ cho vật thể luôn hướng xuống theo trọng lực (hoặc nằm ngang theo kẹp)
+                    ctxSim.rotate(-angle); 
                     ctxSim.fillStyle = '#eab308'; // Màu vàng công nghiệp
                     ctxSim.fillRect(10, -20, 30, 40);
-                    // Vẽ kẹp (Gripper)
+                    // Ngàm kẹp
                     ctxSim.fillStyle = '#1e293b';
                     ctxSim.fillRect(0, -22, 15, 6);
                     ctxSim.fillRect(0, 16, 15, 6);
@@ -299,32 +349,31 @@
                 ctxSim.restore();
             };
 
-            // 1. Vẽ cánh tay mục tiêu (Bóng mờ)
+            // Vẽ tham chiếu (Bóng mờ)
             drawLink(physics.target_theta, '#38bdf8', true, false);
 
-            // 2. Vẽ cánh tay thực tế
+            // Vẽ tay máy thực tế
             drawLink(physics.theta, '#f43f5e', false, true);
             
-            // Vẽ tâm khớp xoay
+            // Vẽ ốc nối khớp tâm
             ctxSim.fillStyle = '#0f172a';
             ctxSim.beginPath(); ctxSim.arc(originX, originY, 8, 0, Math.PI*2); ctxSim.fill();
         }
 
-        // Hàm vẽ đồ thị
         function drawChart(ctx, canvas, arr1, color1, arr2, color2, min, max) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             const w = canvas.width; const h = canvas.height;
             const xStep = w / HISTORY_LEN;
             const getY = (val) => h - ((val - min) / (max - min)) * (h - 20) - 10;
 
-            // Lưới mờ (Đường 0)
+            // Kẻ đường 0 (Tọa độ ngang)
             const zeroY = getY(0);
             if (zeroY > 0 && zeroY < h) {
                 ctx.strokeStyle = '#334155'; ctx.lineWidth = 1;
                 ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(w, zeroY); ctx.stroke();
             }
 
-            // Vẽ đường 1 (Mục tiêu / Khối lượng thực)
+            // Vẽ Line 1 (Target / Real Mass)
             ctx.beginPath(); ctx.strokeStyle = color1; ctx.lineWidth = 2;
             if (color1 === '#38bdf8') ctx.setLineDash([4,4]); else ctx.setLineDash([]);
             for(let i=0; i<HISTORY_LEN; i++) {
@@ -333,7 +382,7 @@
             }
             ctx.stroke();
 
-            // Vẽ đường 2 (Thực tế / Ước lượng)
+            // Vẽ Line 2 (Actual Angle / Estimated Mass)
             ctx.beginPath(); ctx.strokeStyle = color2; ctx.lineWidth = 2; ctx.setLineDash([]);
             for(let i=0; i<HISTORY_LEN; i++) {
                 if(i===0) ctx.moveTo(i*xStep, getY(arr2[i]));
@@ -342,31 +391,33 @@
             ctx.stroke();
         }
 
-        // --- 5. VÒNG LẶP RENDER MÀN HÌNH ---
-        function loop() {
-            // Chạy vật lý nhiều bước nhỏ để đảm bảo tích phân số học ổn định
-            for(let i=0; i<5; i++) updatePhysics(0.004);
+        // --- 6. VÒNG LẶP ANIMATION CHÍNH ---
+        function animationLoop() {
+            // Chạy vi phân nhiều bước nhỏ trên 1 frame để đảm bảo tính ổn định của RK/Euler
+            for(let i=0; i<5; i++) {
+                updatePhysics(0.004); 
+            }
             
             drawArm();
             drawChart(ctxAngle, cAngle, data.angle_target, '#38bdf8', data.angle_actual, '#f43f5e', -0.8, 0.8);
             drawChart(ctxMass, cMass, data.m_true, '#10b981', data.m_hat, '#fbbf24', -0.5, 3.0);
             
-            requestAnimationFrame(loop);
+            requestAnimationFrame(animationLoop);
         }
 
-        // --- 6. XỬ LÝ SỰ KIỆN GIAO DIỆN ---
+        // --- 7. RÀNG BUỘC SỰ KIỆN GIAO DIỆN (UI EVENT LISTENERS) ---
         document.getElementById('btnDropBox').addEventListener('click', () => {
             physics.m_payload = 2.0; 
             document.getElementById('btnDropBox').classList.add('hidden');
             document.getElementById('btnRemoveBox').classList.remove('hidden');
-            disturbanceTorque = -30.0; // Tạo lực giật mô phỏng va chạm khi gắp vật nặng
+            disturbanceTorque = -30.0; // Phản lực giật khi tải nặng rơi vào
         });
 
         document.getElementById('btnRemoveBox').addEventListener('click', () => {
             physics.m_payload = 0.0;
             document.getElementById('btnRemoveBox').classList.add('hidden');
             document.getElementById('btnDropBox').classList.remove('hidden');
-            disturbanceTorque = 30.0; // Phản lực khi nhả vật
+            disturbanceTorque = 30.0; // Phản lực giật khi tải nhẹ đi
         });
 
         document.getElementById('btnDisturbance').addEventListener('click', () => {
@@ -383,17 +434,20 @@
             }
         });
 
-        // Thiết lập sự kiện cho các thanh trượt
         const setupSlider = (id) => {
             document.getElementById(id).addEventListener('input', (e) => {
                 control[id] = parseFloat(e.target.value);
                 document.getElementById('val_'+id).innerText = control[id].toFixed(2);
             });
         };
-        setupSlider('gamma'); setupSlider('lambda'); setupSlider('kd'); setupSlider('sigma');
+        
+        setupSlider('gamma'); 
+        setupSlider('lambda'); 
+        setupSlider('kd'); 
+        setupSlider('sigma');
 
-        // Khởi động
-        loop();
+        // Khởi động mô phỏng
+        animationLoop();
     </script>
 </body>
 </html>
